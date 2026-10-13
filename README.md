@@ -47,6 +47,14 @@ setwd("/path/to/Open-Research-Games-Portal")  # repository root
 shiny::runApp()
 ```
 
+The repository includes `manifest.json`, generated with `rsconnect::writeManifest()`,
+so hosted publishing services can install the app's R dependencies. Regenerate it
+after changing the packages used by the app or data-processing scripts:
+
+```r
+rsconnect::writeManifest(appDir = ".")
+```
+
 ### Refreshing data from Google Sheets
 
 1. Update the [Google Sheet](https://docs.google.com/spreadsheets/d/1cmydWjD1OuyKxJVfDlv0N3T474zwymfB04yFDZQO-TY/edit?usp=sharing). Use the **Access(only_link)** column for play URLs; the export script maps that to the **`access`** field in `data/open_research_games.json`.
