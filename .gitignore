@@ -15,3 +15,4 @@ env/
 *.toc
 *.gz
 *.lof
+.claude/ 

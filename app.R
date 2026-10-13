@@ -85,6 +85,29 @@ has_valid_access_url <- function(x) {
   !is.na(extract_first_http_url(x))
 }
 
+# Canonical values used by the data file for the FORRT cluster filter.
+forrt_cluster_labels <- c(
+  "Replication Crisis and Credibility Revolution",
+  "Conceptual and Statistical Knowledge",
+  "Ways of Working",
+  "Pre-analysis Planning",
+  "Transparency and Reproducibility in Computation and Analysis",
+  "FAIR Data and Materials",
+  "Publication Sharing",
+  "Replication and Meta-Research",
+  "Academic Structures and Institutions",
+  "Qualitative Research",
+  "Research Integrity"
+)
+
+normalize_cluster_values <- function(x) {
+  values <- unlist(strsplit(as.character(x), "[,\n]"))
+  values <- trimws(values)
+  # Support data generated before cluster names stopped including their number.
+  values <- sub("^Cluster\\s+[0-9]+:\\s*", "", values, ignore.case = TRUE)
+  values[values != "" & values != "N/A"]
+}
+
 # UI
 ui <- tagList(
   # scroll to top button functionality
@@ -192,17 +215,7 @@ ui <- tagList(
               selectInput("cluster_filter",
                     label = tagList(icon("filter"), " FORRT Cluster:"),
                     choices = c("All Clusters" = "all",
-                           "Cluster 1: Replication Crisis" = "Cluster 1", # nolint
-                           "Cluster 2: Statistical Knowledge" = "Cluster 2",  # nolint
-                           "Cluster 3: Ways of Working" = "Cluster 3", # nolint
-                           "Cluster 4: Pre-analysis Planning" = "Cluster 4", # nolint
-                           "Cluster 5: Transparency and Reproducibility" = "Cluster 5", # nolint
-                           "Cluster 6: FAIR Data" = "Cluster 6",
-                           "Cluster 7: Publication Sharing" = "Cluster 7", # nolint
-                           "Cluster 8: Meta-Research" = "Cluster 8",
-                           "Cluster 9: Academic Structures" = "Cluster 9", # nolint
-                           "Cluster 10: Qualitative Research" = "Cluster 10", # nolint
-                           "Cluster 11: Research Integrity" = "Cluster 11"), # nolint
+                                setNames(forrt_cluster_labels, forrt_cluster_labels)),
                     selected = "all")
             ),
             column(2,
@@ -505,49 +518,13 @@ server <- function(input, output, session) {
   # Reactive filtered games
   filtered_games <- reactive({
     df <- games_df
-    # Apply cluster filter (supports hardcoded clusters and numeric/label variations)
+    # Apply cluster filter using the content labels stored in the data.
     if (!is.null(input$cluster_filter) && input$cluster_filter != "all") {
       sel <- input$cluster_filter
-
-      # Full list of FORRT clusters (for reference / exact-label matching)
-      forrt_cluster_labels <- c(
-      "Cluster 1: Replication Crisis and Credibility Revolution",
-      "Cluster 2: Conceptual and Statistical Knowledge",
-      "Cluster 3: Ways of Working",
-      "Cluster 4: Pre-analysis Planning",
-      "Cluster 5: Transparency and Reproducibility in Computation and Analysis",
-      "Cluster 6: FAIR Data and Materials",
-      "Cluster 7: Publication Sharing",
-      "Cluster 8: Replication and Meta-Research",
-      "Cluster 9: Academic Structures and Institutions",
-      "Cluster 10: Qualitative Research",
-      "Cluster 11: Research Integrity"
-      )
-
-      # Try to extract a cluster number from the selection (handles "Cluster 3", "3", or full label)
-      cluster_num <- suppressWarnings(as.numeric(gsub("^.*?(\\d+).*$", "\\1", sel)))
-
-      # If selection matches one of the full labels, ensure cluster_num is set accordingly
-      if (is.na(cluster_num) && sel %in% forrt_cluster_labels) {
-      cluster_num <- as.numeric(gsub("^.*?(\\d+).*$", "\\1", sel))
-      }
-
-      if (!is.na(cluster_num)) {
-      matches <- sapply(df$forrt_clusters, function(x) {
-        if (is.null(x) || is.na(x) || x == "N/A") return(FALSE)
-        # Check numeric cluster membership (extract any numbers present)
-        nums <- unlist(regmatches(as.character(x), gregexpr("\\d+", as.character(x))))
-        if (length(nums) > 0 && as.character(cluster_num) %in% nums) return(TRUE)
-        # Fallback: check if the full cluster label appears in the field
-        lbl <- forrt_cluster_labels[forrt_cluster_labels %>% grepl(paste0("(^| )", cluster_num, "(:| )"), .)]
-        if (length(lbl) > 0 && grepl(lbl, x, ignore.case = TRUE)) return(TRUE)
-        return(FALSE)
-      })
+      matches <- vapply(df$forrt_clusters, function(value) {
+        any(tolower(normalize_cluster_values(value)) == tolower(sel))
+      }, logical(1))
       df <- df[matches, , drop = FALSE]
-      } else {
-      # Fallback: text match (handles custom hardcoded labels or free-text)
-      df <- df[grepl(sel, df$forrt_clusters, ignore.case = TRUE), , drop = FALSE]
-      }
     }
     # Apply gameplay filter
     if (!is.null(input$gameplay_filter) && input$gameplay_filter != "all") {
