@@ -7,10 +7,12 @@ on:
 
 jobs:
   data-processing:
+    # Forks inherit the schedule but not the secret, so runs there would fail
+    if: github.repository == 'forrtproject/Open-Research-Games-Portal'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v5
+        uses: actions/checkout@v7
         with:
           token: ${{ secrets.ORGP_DP_TOKEM }}
 
