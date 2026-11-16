@@ -104,7 +104,7 @@ extract_first_link <- function(x) {
 }
 
 collapsed <- collapsed %>% mutate(Access = extract_first_link(Access)) %>% 
-  rename("Acces(only_link)" = "Access")
+  rename("Access(only_link)" = "Access")
 
 # Write both versions to the Open Research Games Portal Google Sheet
 sheet_write(collapsed, ss = ss, sheet = "Open Research Games Portal")
