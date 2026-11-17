@@ -62,7 +62,7 @@ sheets_per <- sheet_names(google_sheet_url_per)
 df_per <- read_sheet(google_sheet_url_per, sheet = sheets_per)
 # Save Entry ID's for entries with game author permissions
 df_per <- df_per[,1:3]
-permissions <- df_per[df_per$Permission == 'Consent granted',] %>% drop_na()
+permissions <- permissions[permissions$Permission == 'Consent granted',] %>% drop_na()
 permissions <- permissions$`Entry ID`
 
 # Remove entries without game author permissions
